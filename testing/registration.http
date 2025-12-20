@@ -2,7 +2,8 @@ POST http://localhost:8080/api/auth/register
 Content-Type: application/json
 
 {
-  "username": "Kejdzi",
-  "password": "TajneHaslo123",
-  "className": "Warrior"
+  "username": "ToJa",
+  "password": "Tajne22Haslo123",
+  "className": "Mage"
 }
+

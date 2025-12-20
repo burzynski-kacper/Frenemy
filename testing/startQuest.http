@@ -1,0 +1,2 @@
+POST http://localhost:8080/api/quests/start?userId=1&questId=1
+Content-Type: application/json

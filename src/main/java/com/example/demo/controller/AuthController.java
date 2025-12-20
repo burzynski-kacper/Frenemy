@@ -5,10 +5,7 @@ import com.example.demo.model.User;
 import com.example.demo.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,5 +27,9 @@ public class AuthController {
         } catch (Exception e) {
             return new ResponseEntity<>("Unexpected server error.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
+    }
+    @GetMapping("/status")
+    public ResponseEntity<String> getStatus() {
+        return ResponseEntity.ok("Auth service is up and running.");
     }
 }
