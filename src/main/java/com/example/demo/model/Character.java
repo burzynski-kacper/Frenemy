@@ -1,8 +1,11 @@
+
 package com.example.demo.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -11,6 +14,8 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @Table(name = "characters")
+@EqualsAndHashCode(exclude = {"inventory", "stats", "user", "characterClass", "currentQuest"})
+@ToString(exclude = {"inventory", "stats", "user", "characterClass", "currentQuest"})
 public class Character {
 
     @Id

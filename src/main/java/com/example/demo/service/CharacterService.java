@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -21,6 +23,14 @@ public class CharacterService {
 
     public CharacterDTO getCharacterResponse(Long userId) {
         Character character = getCharacterByUserId(userId);
+
+        if (character.getCharacterClass() == null) {
+            throw new IllegalStateException("Postać nie ma przypisanej klasy!");
+        }
+        if (character.getUser() == null) {
+            throw new IllegalStateException("Postać nie ma przypisanego użytkownika!");
+        }
+
 
         Stats calculateStats = calculateTotalStats(character);
 
@@ -91,14 +101,20 @@ public class CharacterService {
     private Stats calculateTotalStats(Character character) {
         Stats base = character.getStats();
 
+        if (base == null) {
+            throw new IllegalStateException("Postać nie ma przypisanych statystyk!");
+        }
+
+
         int totalStrength = base.getStrength();
         int totalIntelligence = base.getIntelligence();
         int totalDexterity = base.getDexterity();
         int totalConstitution = base.getConstitution();
         int totalLuck = base.getLuck();
 
-        if (character.getInventory() != null) {
-            for (CharacterItem itemEntry : character.getInventory()) {
+        if (character.getInventory() != null && !character.getInventory().isEmpty()) {
+            List<CharacterItem> inventoryCopy = new ArrayList<>(character.getInventory());
+            for (CharacterItem itemEntry : inventoryCopy) {
                 if (itemEntry.isEquipped()) {
                     Item item = itemEntry.getItem();
                     totalStrength += item.getStrengthBonus();
@@ -109,6 +125,7 @@ public class CharacterService {
                 }
             }
         }
+
         return new Stats(totalStrength, totalDexterity, totalConstitution, totalLuck, totalIntelligence);
     }
 }

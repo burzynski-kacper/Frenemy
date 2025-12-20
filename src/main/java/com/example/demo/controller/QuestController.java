@@ -30,14 +30,13 @@ public class QuestController {
             var characterDTO = characterService.startQuest(userId, questId);
             return ResponseEntity.ok(characterDTO);
         } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage()); // Character is busy
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Wystąpił błąd: " + e.getMessage());
+            e.printStackTrace(); // <-- Dodaj to aby zobaczyć pełny stack trace w konsoli
+            return ResponseEntity.internalServerError().body("Wystąpił błąd: " + e.getClass().getName() + " - " + e.getMessage());
         }
+
     }
-
-
 
     @PostMapping("/complete")
     public ResponseEntity<?> completeQuest(@RequestParam Long userId) {

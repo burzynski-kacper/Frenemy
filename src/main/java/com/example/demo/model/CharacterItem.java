@@ -2,12 +2,16 @@ package com.example.demo.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Data
 @NoArgsConstructor
 @Table(name = "character_items")
+@EqualsAndHashCode(exclude = {"character", "item"})
+@ToString(exclude = {"character", "item"})
 public class CharacterItem {
 
     @Id
