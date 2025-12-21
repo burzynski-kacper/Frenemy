@@ -18,9 +18,9 @@ public class QuestController {
     private final QuestService questService;
     private final CharacterService characterService;
 
-    @GetMapping("/random")
-    public ResponseEntity<List<Quest>> getRandomQuests() {
-        return ResponseEntity.ok(questService.getThreeRandomQuests());
+    @GetMapping("/available")
+    public ResponseEntity<List<Quest>> getAvailableQuests(@RequestParam Long userId) {
+        return ResponseEntity.ok(questService.getQuestsForUser(userId));
     }
 
     @PostMapping("/start")
@@ -32,7 +32,7 @@ public class QuestController {
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace(); // <-- Dodaj to aby zobaczyć pełny stack trace w konsoli
+            e.printStackTrace();
             return ResponseEntity.internalServerError().body("Wystąpił błąd: " + e.getClass().getName() + " - " + e.getMessage());
         }
 

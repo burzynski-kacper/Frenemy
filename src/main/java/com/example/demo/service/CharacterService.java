@@ -1,9 +1,12 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.CharacterDTO;
+import com.example.demo.dto.FightResultDTO;
 import com.example.demo.model.*;
 import com.example.demo.model.Character;
+import com.example.demo.repository.CharacterItemRepository;
 import com.example.demo.repository.CharacterRepository;
+import com.example.demo.repository.ItemRepository;
 import com.example.demo.repository.QuestRepository;
 import com.example.demo.util.ExperienceCalculator;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,10 @@ public class CharacterService {
     private final CharacterRepository characterRepository;
     private final QuestRepository questRepository;
     private final LevelService levelService;
+    private final ItemRepository itemRepository;
+    private final CharacterItemRepository characterItemRepository;
+    private final CombatService combatService;
+
 
     public CharacterDTO getCharacterResponse(Long userId) {
         Character character = getCharacterByUserId(userId);
@@ -72,37 +79,58 @@ public class CharacterService {
 
 
     @Transactional
-    public CharacterDTO completeQuest(Long userId) {
-        Character character = getCharacterByUserId(userId);
+    public FightResultDTO completeQuest(Long userId) {
+        Character character = characterRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalStateException("Postać nie istnieje!"));
 
-        if (character.getCurrentQuest() == null || character.getQuestEndTime() == null) {
-            throw new IllegalStateException("Postać nie jest aktualnie na żadnej misji.");
+        if (character.getCurrentQuest() == null) {
+            throw new IllegalStateException("Postać nie jest na misji!");
         }
 
-        if (LocalDateTime.now().isBefore(character.getQuestEndTime())) {
-            throw new IllegalStateException("Misja jeszcze trwa! Wróć później.");
+        Quest quest = questRepository.findById(character.getCurrentQuest().getId())
+                .orElseThrow(() -> new IllegalStateException("Misja nie istnieje!"));
+
+        // 1. WALKA
+        if (quest.getEnemyId() == null) {
+            throw new IllegalStateException("Błąd danych: Misja bez przeciwnika!");
         }
 
-        Quest finishedQuest = character.getCurrentQuest();
-        int goldReward = finishedQuest.getRewardGold();
-        int expReward = finishedQuest.getRewardXp();
+        FightResultDTO result = combatService.fight(userId, quest.getEnemyId());
 
-        character.setGold(character.getGold() + goldReward);
-        character.setExperience(character.getExperience() + expReward);
+        // 2. JEŚLI WYGRANA -> ROZDAJ NAGRODY
+        if (result.isPlayerWon()) {
+            // Złoto i XP z definicji Misji
+            character.setGold(character.getGold() + quest.getRewardGold());
+            character.setExperience(character.getExperience() + quest.getRewardXp());
 
-        int levelsGained = levelService.checkAndLevelUp(character);
-        if (levelsGained > 0) {
-            System.out.println("Postać awansowała o " + levelsGained + " poziom(y)! Nowy level: " + character.getLevel());
+            // Sprawdzenie level up (jeśli levelService nie jest wywoływany w combatService)
+            levelService.checkAndLevelUp(character);
+
+            // === LOGIKA ITEMU (Czy ta misja ma przypisany przedmiot?) ===
+            if (quest.getRewardItemId() != null) {
+                Item item = itemRepository.findById(quest.getRewardItemId())
+                        .orElse(null);
+
+                if (item != null) {
+                    // Dodaj do ekwipunku
+                    CharacterItem newItem = new CharacterItem();
+                    newItem.setCharacter(character);
+                    newItem.setItem(item);
+                    newItem.setEquipped(false);
+                    characterItemRepository.save(newItem);
+
+                    System.out.println("NAGRODA: Gracz otrzymał przedmiot: " + item.getName());
+                }
+            }
         }
 
+        // 3. Koniec misji (czyścimy status)
         character.setCurrentQuest(null);
         character.setQuestEndTime(null);
+        characterRepository.save(character);
 
-        Character savedCharacter = characterRepository.save(character);
-
-        return getCharacterResponse(savedCharacter.getUser().getId());
+        return result;
     }
-
 
     private Character getCharacterByUserId(Long userId) {
         return characterRepository.findByUserId(userId)
