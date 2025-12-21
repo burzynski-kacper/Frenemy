@@ -1,5 +1,6 @@
 package com.example.demo.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,6 +29,7 @@ public class CharacterClass {
     private String description;
 
     @OneToMany(mappedBy = "characterClass")
+    @JsonIgnore
     private Set<Character> characters;
 
     public CharacterClass(String name, String primaryStat, String specialAbility, String description) {

@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.config.GameConfig;
+import com.example.demo.dto.EnemyDTO;
 import com.example.demo.dto.FightResultDTO;
 import com.example.demo.dto.FightTurnDTO;
 import com.example.demo.model.Character;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -600,5 +602,24 @@ public class CombatService {
         boolean dodged = false;
         boolean givesDiveBonus = false;
         int reflected = 0;
+    }
+
+    public List<EnemyDTO> getEnemiesAroundLevel(int playerLevel) {
+        // Logika biznesowa obliczania zakresu (np. +/- 2 level)
+        int minLevel = Math.max(1, playerLevel - 2);
+        int maxLevel = playerLevel + 2;
+
+        List<Enemy> enemies = enemyRepository.findByLevelBetween(minLevel, maxLevel);
+
+        return enemies.stream()
+                .map(EnemyDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    public List<EnemyDTO> getAllEnemies() {
+        return enemyRepository.findAll()
+                .stream()
+                .map(EnemyDTO::fromEntity) // Używamy naszej metody mapującej
+                .collect(Collectors.toList());
     }
 }

@@ -11,7 +11,4 @@ public interface EnemyRepository extends JpaRepository<Enemy, Long> {
     List<Enemy> findByEnemyType(String enemyType);
 
     List<Enemy> findByLevelBetween(int minLevel, int maxLevel);
-
-    @Query("SELECT e FROM Enemy e WHERE e.level BETWEEN :playerLevel - 2 AND :playerLevel + 2")
-    List<Enemy> findEnemiesAroundLevel(int playerLevel);
 }

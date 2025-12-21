@@ -1,8 +1,7 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.EnemyDTO;
 import com.example.demo.dto.FightResultDTO;
-import com.example.demo.model.Enemy;
-import com.example.demo.repository.EnemyRepository;
 import com.example.demo.service.CombatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,16 +15,15 @@ import java.util.List;
 public class CombatController {
 
     private final CombatService combatService;
-    private final EnemyRepository enemyRepository;
 
     @GetMapping("/enemies")
-    public ResponseEntity<List<Enemy>> getAllEnemies() {
-        return ResponseEntity.ok(enemyRepository.findAll());
+    public ResponseEntity<List<EnemyDTO>> getAllEnemies() {
+        return ResponseEntity.ok(combatService.getAllEnemies());
     }
 
     @GetMapping("/enemies/level/{playerLevel}")
-    public ResponseEntity<List<Enemy>> getEnemiesForLevel(@PathVariable int playerLevel) {
-        return ResponseEntity.ok(enemyRepository.findEnemiesAroundLevel(playerLevel));
+    public ResponseEntity<List<EnemyDTO>> getEnemiesForLevel(@PathVariable int playerLevel) {
+        return ResponseEntity.ok(combatService.getEnemiesAroundLevel(playerLevel));
     }
 
     @PostMapping("/fight")
