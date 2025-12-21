@@ -5,6 +5,7 @@ import com.example.demo.model.*;
 import com.example.demo.model.Character;
 import com.example.demo.repository.CharacterRepository;
 import com.example.demo.repository.QuestRepository;
+import com.example.demo.util.ExperienceCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ public class CharacterService {
 
     private final CharacterRepository characterRepository;
     private final QuestRepository questRepository;
+    private final LevelService levelService;
 
     public CharacterDTO getCharacterResponse(Long userId) {
         Character character = getCharacterByUserId(userId);
@@ -41,8 +43,11 @@ public class CharacterService {
                 .experience(character.getExperience())
                 .gold(character.getGold())
                 .className(character.getCharacterClass().getName())
+                .raceName(character.getRace() != null ? character.getRace().getName() : "Nieznana")
                 .username(character.getUser().getUsername())
                 .stats(calculateStats)
+                .xpToNextLevel(ExperienceCalculator.getXpToNextLevel(character.getLevel(), character.getExperience()))
+                .xpProgressPercent(ExperienceCalculator.getXpProgressPercent(character.getLevel(), character.getExperience()))
                 .build();
     }
 
@@ -85,6 +90,11 @@ public class CharacterService {
         character.setGold(character.getGold() + goldReward);
         character.setExperience(character.getExperience() + expReward);
 
+        int levelsGained = levelService.checkAndLevelUp(character);
+        if (levelsGained > 0) {
+            System.out.println("Postać awansowała o " + levelsGained + " poziom(y)! Nowy level: " + character.getLevel());
+        }
+
         character.setCurrentQuest(null);
         character.setQuestEndTime(null);
 
@@ -92,6 +102,7 @@ public class CharacterService {
 
         return getCharacterResponse(savedCharacter.getUser().getId());
     }
+
 
     private Character getCharacterByUserId(Long userId) {
         return characterRepository.findByUserId(userId)

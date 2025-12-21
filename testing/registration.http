@@ -4,6 +4,8 @@ Content-Type: application/json
 {
   "username": "ToJa",
   "password": "Tajne22Haslo123",
-  "className": "Mage"
+  "className": "Tropiciel",
+  "characterName": "Rozpierdalacz",
+  "raceName": "Nordowie"
 }
 

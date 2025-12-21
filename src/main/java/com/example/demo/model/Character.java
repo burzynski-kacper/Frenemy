@@ -14,8 +14,8 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @Table(name = "characters")
-@EqualsAndHashCode(exclude = {"inventory", "stats", "user", "characterClass", "currentQuest"})
-@ToString(exclude = {"inventory", "stats", "user", "characterClass", "currentQuest"})
+@EqualsAndHashCode(exclude = {"inventory", "stats", "user", "characterClass", "currentQuest", "race"})
+@ToString(exclude = {"inventory", "stats", "user", "characterClass", "currentQuest", "race"})
 public class Character {
 
     @Id
@@ -43,6 +43,10 @@ public class Character {
     @ManyToOne
     @JoinColumn(name = "class_id", referencedColumnName = "id")
     private CharacterClass characterClass;
+
+    @ManyToOne
+    @JoinColumn(name = "race_id", referencedColumnName = "id")
+    private Race race;
 
     @ManyToOne
     @JoinColumn(name = "current_quest_id")

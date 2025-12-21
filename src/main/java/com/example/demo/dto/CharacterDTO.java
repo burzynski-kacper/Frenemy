@@ -13,6 +13,9 @@ public class CharacterDTO {
     private long experience;
     private long gold;
     private String className;
+    private String raceName;
     private String username;
     private Stats stats;
+    private long xpToNextLevel;
+    private int xpProgressPercent;
 }

@@ -11,4 +11,6 @@ public class RegisterRequest {
     private String username;
     private String password;
     private String className;
+    private String raceName;
+    private String characterName;
 }

@@ -1,0 +1,26 @@
+### 1. Sprawdź stan postaci przed walką
+GET http://localhost:8080/api/character/1
+
+### 2. Zobacz wszystkich dostępnych przeciwników
+GET http://localhost:8080/api/combat/enemies
+
+### 3. Zobacz przeciwników dopasowanych do poziomu gracza (np. level 1)
+GET http://localhost:8080/api/combat/enemies/level/1
+
+### 4. WALKA! Gracz (userId=1) vs Dziki Wilk (enemyId=1)
+POST http://localhost:8080/api/combat/fight?userId=1&enemyId=1
+
+### 5. Walka z trudniejszym przeciwnikiem - Goblin (enemyId=2)
+POST http://localhost:8080/api/combat/fight?userId=1&enemyId=2
+
+### 6. Walka z Trollem Jaskiniowym (enemyId=3) - DUNGEON
+POST http://localhost:8080/api/combat/fight?userId=1&enemyId=3
+
+### 7. Walka z Draugrem (enemyId=4) - DUNGEON
+POST http://localhost:8080/api/combat/fight?userId=1&enemyId=4
+
+### 8. Walka z BOSSEM - Jotuński Berserker (enemyId=5)
+POST http://localhost:8080/api/combat/fight?userId=1&enemyId=9
+
+### 9. Sprawdź stan postaci po walkach (XP, złoto, level)
+GET http://localhost:8080/api/character/1

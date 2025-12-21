@@ -21,11 +21,27 @@ public class CharacterClass {
     @Column(nullable = false)
     private String primaryStat;
 
+    @Column(nullable = false)
+    private String specialAbility;
+
+    @Column(length = 500)
+    private String description;
+
     @OneToMany(mappedBy = "characterClass")
     private Set<Character> characters;
+
+    public CharacterClass(String name, String primaryStat, String specialAbility, String description) {
+        this.name = name;
+        this.primaryStat = primaryStat;
+        this.specialAbility = specialAbility;
+        this.description = description;
+    }
 
     public CharacterClass(String name, String primaryStat) {
         this.name = name;
         this.primaryStat = primaryStat;
+        this.specialAbility = "NONE";
+        this.description = "";
+
     }
 }
