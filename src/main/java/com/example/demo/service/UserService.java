@@ -63,4 +63,24 @@ public class UserService {
 
         return savedUser;
     }
+
+    public com.example.demo.dto.LoginResponse loginUser(com.example.demo.dto.LoginRequest request) {
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("Nieprawidłowa nazwa użytkownika lub has hasło!"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Nieprawidłowa nazwa użytkownika lub hasło!");
+        }
+
+        Character character = characterRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new IllegalStateException("Brak postaci dla tego użytkownika!"));
+
+        return com.example.demo.dto.LoginResponse.builder()
+                .userId(user.getId())
+                .username(user.getUsername())
+                .characterId(character.getId())
+                .characterName(character.getName())
+                .message("Zalogowano pomyślnie!")
+                .build();
+    }
 }

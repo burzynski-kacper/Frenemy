@@ -9,3 +9,38 @@ Content-Type: application/json
   "raceName": "Nordowie"
 }
 
+### Test Logowania - Sukces (użytkownik testowy "ragnar")
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "ragnar",
+  "password": "vikings123"
+}
+
+### Test Logowania - Zły użytkownik
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "nieistniejacy",
+  "password": "jakiekolwiek"
+}
+
+### Test Logowania - Złe hasło
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "ragnar",
+  "password": "zlehaslo"
+}
+
+### Test Logowania - Nowo zarejestrowany użytkownik
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "ToJa",
+  "password": "Tajne22Haslo123"
+}

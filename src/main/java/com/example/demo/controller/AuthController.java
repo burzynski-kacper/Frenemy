@@ -28,6 +28,19 @@ public class AuthController {
             return new ResponseEntity<>("Unexpected server error.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody com.example.demo.dto.LoginRequest request) {
+        try {
+            com.example.demo.dto.LoginResponse response = userService.loginUser(request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Unexpected server error.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @GetMapping("/status")
     public ResponseEntity<String> getStatus() {
         return ResponseEntity.ok("Auth service is up and running.");

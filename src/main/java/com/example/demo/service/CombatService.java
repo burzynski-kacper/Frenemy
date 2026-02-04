@@ -104,9 +104,10 @@ public class CombatService {
 
         AttackResult result = tryDefense(damage, isCrit, enemyAbility);
 
-        // Jeśli wróg zrobił unik i jest Walkirią, daj mu bonus
+        // Jeśli wróg zrobił unik i jest Walkirią, absorbuje 50% obrażeń
         if (result.dodged && result.givesDiveBonus) {
-            state.setEnemyHasDiveBonus(true);
+            int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
+            state.setEnemyAbsorbedDamage(state.getEnemyAbsorbedDamage() + absorbed);
         }
 
         // Obsługa odbicia (Huskarl Enemy)
@@ -142,8 +143,11 @@ public class CombatService {
                 }
             } else if (result.dodged) {
                 details.add("UNIK");
-                // Wróg unika ciosu szału -> dostaje bonus
-                if (result.givesDiveBonus) state.setEnemyHasDiveBonus(true);
+                // Wróg unika ciosu szału -> absorbuje połowę obrażeń
+                if (result.givesDiveBonus) {
+                    int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
+                    state.setEnemyAbsorbedDamage(state.getEnemyAbsorbedDamage() + absorbed);
+                }
             } else {
                 totalDamage += result.damage;
                 details.add(String.valueOf(result.damage));
@@ -237,7 +241,8 @@ public class CombatService {
 
         // Sprawdzamy czy wróg uniknął fizycznej części ataku
         if (result.dodged && result.givesDiveBonus) {
-            state.setEnemyHasDiveBonus(true);
+            int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
+            state.setEnemyAbsorbedDamage(state.getEnemyAbsorbedDamage() + absorbed);
         }
 
         state.setEnemyHp(state.getEnemyHp() - finalDamage);
@@ -251,11 +256,11 @@ public class CombatService {
         String action = "ATTACK";
         String descPrefix = "";
 
-        // SPRAWDZENIE BONUSU GRACZA
-        if (state.isPlayerHasDiveBonus()) {
-            damage = CombatCalculator.applyDiveBonus(damage);
-            descPrefix = "[PIKOWANIE] ";
-            state.setPlayerHasDiveBonus(false); // Zużycie bonusu
+        // SPRAWDZENIE ZAABSORBOWANYCH OBRAŻEŃ GRACZA
+        if (state.getPlayerAbsorbedDamage() > 0) {
+            damage += state.getPlayerAbsorbedDamage();  // Dodaj zaabsorbowane obrażenia
+            descPrefix = "[PIKOWANIE +" + state.getPlayerAbsorbedDamage() + " dmg] ";
+            state.setPlayerAbsorbedDamage(0); // Reset zaabsorbowanych obrażeń
             action = "DIVE";
         } else if (isCrit) {
             damage = (int)(damage * 1.5);
@@ -263,9 +268,10 @@ public class CombatService {
 
         AttackResult result = tryDefense(damage, isCrit || "DIVE".equals(action), enemyAbility);
 
-        // Jeśli wróg zrobił unik, daj mu bonus
+        // Jeśli wróg zrobił unik, absorbuje połowę obrażeń
         if (result.dodged && result.givesDiveBonus) {
-            state.setEnemyHasDiveBonus(true);
+            int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
+            state.setEnemyAbsorbedDamage(state.getEnemyAbsorbedDamage() + absorbed);
         }
         // -----------------------------------------------------
 
@@ -316,7 +322,8 @@ public class CombatService {
         }
 
         if (result.dodged && result.givesDiveBonus) {
-            state.setPlayerHasDiveBonus(true); // Gracz Walkiria zyskuje bonus
+            int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
+            state.setPlayerAbsorbedDamage(state.getPlayerAbsorbedDamage() + absorbed); // Gracz Walkiria absorbuje obrażenia
         }
 
         state.setPlayerHp(state.getPlayerHp() - result.damage);
@@ -345,7 +352,10 @@ public class CombatService {
                 }
             } else if (result.dodged) {
                 details.add("UNIK");
-                if (result.givesDiveBonus) state.setPlayerHasDiveBonus(true);
+                if (result.givesDiveBonus) {
+                    int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
+                    state.setPlayerAbsorbedDamage(state.getPlayerAbsorbedDamage() + absorbed);
+                }
             } else {
                 totalDamage += result.damage;
                 details.add(String.valueOf(result.damage));
@@ -437,7 +447,8 @@ public class CombatService {
 
         // TERAZ POPRAWNIE SPRAWDZAMY CZY UNIKAMY (używając wyniku prawdziwego ataku 'result')
         if (result.dodged && result.givesDiveBonus) {
-            state.setPlayerHasDiveBonus(true);
+            int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
+            state.setPlayerAbsorbedDamage(state.getPlayerAbsorbedDamage() + absorbed);
         }
 
         state.setPlayerHp(state.getPlayerHp() - finalDamage);
@@ -451,10 +462,11 @@ public class CombatService {
         String action = "ATTACK";
         String descPrefix = "";
 
-        if (state.isEnemyHasDiveBonus()) {
-            damage = CombatCalculator.applyDiveBonus(damage);
-            descPrefix = "[PIKOWANIE] ";
-            state.setEnemyHasDiveBonus(false);
+        // SPRAWDZENIE ZAABSORBOWANYCH OBRAŻEŃ WROGA
+        if (state.getEnemyAbsorbedDamage() > 0) {
+            damage += state.getEnemyAbsorbedDamage();  // Dodaj zaabsorbowane obrażenia
+            descPrefix = "[PIKOWANIE +" + state.getEnemyAbsorbedDamage() + " dmg] ";
+            state.setEnemyAbsorbedDamage(0); // Reset zaabsorbowanych obrażeń
             action = "DIVE";
         } else if (isCrit) {
             damage = (int)(damage * 1.5);
@@ -467,7 +479,8 @@ public class CombatService {
             descPrefix += "(Odbito " + result.reflected + ") ";
         }
         if (result.dodged && result.givesDiveBonus) {
-            state.setPlayerHasDiveBonus(true);
+            int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
+            state.setPlayerAbsorbedDamage(state.getPlayerAbsorbedDamage() + absorbed);
         }
 
         state.setPlayerHp(state.getPlayerHp() - result.damage);
@@ -481,6 +494,7 @@ public class CombatService {
     private AttackResult tryDefense(int damage, boolean isCrit, String defenderAbility) {
         AttackResult result = new AttackResult();
         result.damage = damage;
+        result.originalDamage = damage;  // Zapisz oryginalne obrażenia
 
         if (defenderAbility == null) return result;
 
@@ -598,6 +612,7 @@ public class CombatService {
     // Klasa wewnętrzna tylko do obsługi wyniku obrony
     private static class AttackResult {
         int damage = 0;
+        int originalDamage = 0;  // Oryginalne obrażenia przed obroną (do absorbcji Walkirii)
         boolean blocked = false;
         boolean dodged = false;
         boolean givesDiveBonus = false;

@@ -35,7 +35,7 @@ public class GameConfig {
     // === KLASA: WALKIRIA (Hybryda) ===
     public static final String ABILITY_WALKIRIA = "DODGE_WALKIRIA";
     public static final int WALKIRIA_DODGE_CHANCE = 40;          // 40% szansy na unik
-    public static final int WALKIRIA_DIVE_DAMAGE_BOOST = 30;     // +30% dmg przy ataku po uniku (Pikowanie)
+    public static final int WALKIRIA_DAMAGE_ABSORPTION_PERCENT = 50;  // Absorbuje 50% unikniętych obrażeń jako bonus do ataku
 
     // === KLASA: MISTRZ RUN (Mag) ===
     public static final String ABILITY_MISTRZ_RUN = "TRUE_STRIKE";

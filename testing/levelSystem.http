@@ -11,9 +11,4 @@ POST http://localhost:8080/api/quests/start?userId=1&questId=1
 POST http://localhost:8080/api/quests/complete?userId=1
 
 ### 5. Sprawdź stan postaci po ukończeniu questa
-# Powinieneś zobaczyć:
-# - zwiększone experience
-# - xpToNextLevel (ile brakuje do następnego poziomu)
-# - xpProgressPercent (procent postępu)
-# - jeśli awansowałeś: wyższy level i zwiększone statystyki
 GET http://localhost:8080/api/characters/1

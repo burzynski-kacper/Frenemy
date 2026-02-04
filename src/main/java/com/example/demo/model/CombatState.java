@@ -12,8 +12,8 @@ public class CombatState {
     private int enemyHp;
 
     // Flagi efektów statusu dla tej konkretnej walki
-    private boolean playerHasDiveBonus = false;
-    private boolean enemyHasDiveBonus = false;
+    private int playerAbsorbedDamage = 0;  // Zaabsorbowane obrażenia z uników (Walkiria - 50% unikniętych dmg)
+    private int enemyAbsorbedDamage = 0;   // Zaabsorbowane obrażenia wroga (jeśli wróg to Walkiria)
     private boolean playerIsFrozen = false;
     private boolean enemyIsFrozen = false;
 

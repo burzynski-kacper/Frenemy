@@ -69,6 +69,11 @@ public class CharacterService {
         Quest quest = questRepository.findById(questId)
                 .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono takiego questu."));
 
+        // Walidacja poziomu
+        if (character.getLevel() < quest.getMinLevel()) {
+            throw new IllegalStateException("Twój poziom jest za niski! Wymagany: " + quest.getMinLevel());
+        }
+
         character.setCurrentQuest(quest);
         character.setQuestEndTime(LocalDateTime.now().plusMinutes(quest.getDurationMinutes()));
 
@@ -89,6 +94,11 @@ public class CharacterService {
 
         Quest quest = questRepository.findById(character.getCurrentQuest().getId())
                 .orElseThrow(() -> new IllegalStateException("Misja nie istnieje!"));
+
+        // Walidacja czasu questu
+        if (character.getQuestEndTime() != null && LocalDateTime.now().isBefore(character.getQuestEndTime())) {
+            throw new IllegalStateException("Quest jeszcze się nie zakończył! Poczekaj.");
+        }
 
         // 1. WALKA
         if (quest.getEnemyId() == null) {
@@ -166,5 +176,12 @@ public class CharacterService {
         }
 
         return new Stats(totalStrength, totalDexterity, totalConstitution, totalLuck, totalIntelligence);
+    }
+
+    public List<CharacterItem> getCharacterInventory(Long userId) {
+        Character character = getCharacterByUserId(userId);
+        return character.getInventory() != null 
+            ? new ArrayList<>(character.getInventory()) 
+            : new ArrayList<>();
     }
 }

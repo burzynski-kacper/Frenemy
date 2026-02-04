@@ -1,0 +1,32 @@
+### 1. Sprawdź wszystkich przeciwników (znajdź Berserkerów)
+GET http://localhost:8080/api/combat/enemies
+
+### 2. Przygotuj test - utwórz postać Walkirii
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "valkyrie_test",
+  "password": "test123",
+  "characterName": "Brynhildr",
+  "className": "Walkiria",
+  "raceName": "Nordowie"
+}
+
+### 3. Sprawdź szczegóły postaci Walkirii (zapisz userId)
+GET http://localhost:8080/api/character/2
+
+### 4. WALKA #1: Walkiria vs Bandyta Berserker (enemyId=3)
+### Berserker ma FRENZY - może zadać serię ataków
+### Walkiria ma 40% szansę na unik - z każdym unikiem zyskuje +15% dmg
+POST http://localhost:8080/api/combat/fight?userId=2&enemyId=3
+
+### 5. WALKA #2: Walkiria vs Jotuński Berserker (enemyId=9) - BOSS
+### Trudniejszy test - boss ma więcej HP i większe obrażenia
+POST http://localhost:8080/api/combat/fight?userId=1&enemyId=9
+
+### 6. WALKA #3: Test wielokrotny - sprawdź konsystencję mechaniki
+POST http://localhost:8080/api/combat/fight?userId=1&enemyId=3
+
+### 7. Sprawdź statystyki postaci po walkach
+GET http://localhost:8080/api/character/1

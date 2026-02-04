@@ -32,4 +32,16 @@ public class CharacterController {
             return new ResponseEntity<>("Server error occurred while getting character.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping("/{userId}/inventory")
+    public ResponseEntity<?> getInventory(@PathVariable Long userId) {
+        try {
+            var inventory = characterService.getCharacterInventory(userId);
+            return ResponseEntity.ok(inventory);
+        } catch (NoSuchElementException e) {
+            return new ResponseEntity<>("Character not found.", HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Server error.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -102,12 +102,7 @@ public final class CombatCalculator {
         return damage - (damage * GameConfig.TROPICIEL_MAGIC_RESIST) / 100;
     }
 
-    /**
-     * WALKIRIA: Oblicza bonus do obrażeń po udanym uniku (Pikowanie).
-     */
-    public static int applyDiveBonus(int damage) {
-        return damage + (damage * GameConfig.WALKIRIA_DIVE_DAMAGE_BOOST) / 100;
-    }
+
 
     /**
      * SKALD: Losuje pieśń (1-3).
