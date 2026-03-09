@@ -18,7 +18,7 @@ public class FightResultDTO {
     private int turnsCount;
     private List<FightTurnDTO> fightLog;
 
-    // Nagrody (tylko jeśli wygrał)
+    // Rewards (only if won)
     private int xpGained;
     private int goldGained;
     private boolean leveledUp;

@@ -32,7 +32,7 @@ public class CombatController {
             FightResultDTO result = combatService.fight(userId, enemyId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Błąd walki: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Error during fight: " + e.getMessage());
         }
     }
 }

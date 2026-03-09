@@ -28,46 +28,46 @@ public class CombatService {
     private final LevelService levelService;
 
     /**
-     * Główna metoda obsługująca walkę.
+     * Main method handling the fight.
      */
     @Transactional
     public FightResultDTO fight(Long userId, Long enemyId) {
         Character player = characterRepository.findByUserId(userId)
-                .orElseThrow(() -> new NoSuchElementException("Nie znaleziono postaci gracza."));
+                .orElseThrow(() -> new NoSuchElementException("Character not found."));
 
         Enemy enemy = enemyRepository.findById(enemyId)
-                .orElseThrow(() -> new NoSuchElementException("Nie znaleziono przeciwnika."));
+                .orElseThrow(() -> new NoSuchElementException("Enemy not found."));
 
-        // 1. Inicjalizacja HP i Stanu Walki
+        // 1. Initialize HP and Combat State
         int playerMaxHp = CombatCalculator.calculatePlayerHp(player);
         int enemyMaxHp = enemy.getMaxHp();
 
-        // Używamy zewnętrznej klasy modelu do trzymania płynnego stanu HP
+        // Use external model class to maintain fluid HP state
         CombatState state = new CombatState(playerMaxHp, enemyMaxHp);
 
         List<FightTurnDTO> fightLog = new ArrayList<>();
         int turn = 0;
-        boolean isPlayerTurn = true; // Gracz zawsze zaczyna
+        boolean isPlayerTurn = true; // Player always goes first
 
-        // Pobranie kodów umiejętności (np. "BLOCK", "FRENZY")
+        // Get ability codes (e.g. "BLOCK", "FRENZY")
         String playerAbility = player.getCharacterClass().getSpecialAbility();
         String enemyAbility = enemy.getAbility();
 
-        // === 2. GŁÓWNA PĘTLA WALKI ===
+        // === 2. Main Fight Loop ===
         while (state.getPlayerHp() > 0 && state.getEnemyHp() > 0 && turn < 100) {
             turn++;
 
             if (isPlayerTurn) {
                 if (state.isPlayerIsFrozen()) {
                     logFrozen(fightLog, turn, player.getName(), state.getEnemyHp());
-                    state.setPlayerIsFrozen(false); // Reset zamrożenia
+                    state.setPlayerIsFrozen(false); // Reset freeze
                 } else {
                     handlePlayerTurn(player, enemy, state, playerMaxHp, playerAbility, enemyAbility, turn, fightLog);
                 }
             } else {
                 if (state.isEnemyIsFrozen()) {
                     logFrozen(fightLog, turn, enemy.getName(), state.getPlayerHp());
-                    state.setEnemyIsFrozen(false); // Reset zamrożenia
+                    state.setEnemyIsFrozen(false); // Reset freeze
                 } else {
                     handleEnemyTurn(player, enemy, state, enemyMaxHp, playerAbility, enemyAbility, turn, fightLog);
                 }
@@ -75,46 +75,48 @@ public class CombatService {
             isPlayerTurn = !isPlayerTurn;
         }
 
-        // 3. Budowanie wyniku i nagrody
+        // 3. Build result and rewards
         return processFightResult(player, enemy, state, playerMaxHp, enemyMaxHp, fightLog, turn);
     }
 
     // ========================================================
-    // TURA GRACZA (Router)
+    // PLAYER TURN
     // ========================================================
 
     private void handlePlayerTurn(Character player, Enemy enemy, CombatState state, int playerMaxHp,
-                                  String playerAbility, String enemyAbility, int turn, List<FightTurnDTO> log) {
+            String playerAbility, String enemyAbility, int turn, List<FightTurnDTO> log) {
         switch (playerAbility) {
             case GameConfig.ABILITY_BERSERKER -> playerBerserkerAttack(player, enemy, state, enemyAbility, turn, log);
             case GameConfig.ABILITY_MISTRZ_RUN -> playerRuneAttack(player, enemy, state, enemyAbility, turn, log);
-            case GameConfig.ABILITY_SKALD -> playerSkaldAttack(player, enemy, state, playerMaxHp, enemyAbility, turn, log);
+            case GameConfig.ABILITY_SKALD ->
+                playerSkaldAttack(player, enemy, state, playerMaxHp, enemyAbility, turn, log);
             case GameConfig.ABILITY_WALKIRIA -> playerWalkiriaAttack(player, enemy, state, enemyAbility, turn, log);
             default -> playerNormalAttack(player, enemy, state, enemyAbility, turn, log);
         }
     }
 
-    // --- Implementacje Ataków Gracza ---
+    // --- Player Attack Implementations ---
 
     private void playerNormalAttack(Character player, Enemy enemy, CombatState state,
-                                    String enemyAbility, int turn, List<FightTurnDTO> log) {
+            String enemyAbility, int turn, List<FightTurnDTO> log) {
         int damage = CombatCalculator.calculatePlayerDamage(player);
         boolean isCrit = CombatCalculator.isCriticalHit(player.getStats().getLuck());
-        if (isCrit) damage = (int)(damage * 1.5);
+        if (isCrit)
+            damage = (int) (damage * 1.5);
 
         AttackResult result = tryDefense(damage, isCrit, enemyAbility);
 
-        // Jeśli wróg zrobił unik i jest Walkirią, absorbuje 50% obrażeń
+        // If enemy dodges and is Walkira, absorbs 50% of damage
         if (result.dodged && result.givesDiveBonus) {
             int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
             state.setEnemyAbsorbedDamage(state.getEnemyAbsorbedDamage() + absorbed);
         }
 
-        // Obsługa odbicia (Huskarl Enemy)
+        // Enemy blocks and reflects damage (Huskarl Enemy)
         if (result.blocked && result.reflected > 0) {
             state.setPlayerHp(state.getPlayerHp() - result.reflected);
             log.add(buildTurn(turn, player.getName(), "REFLECT_TAKEN", 0, state.getEnemyHp(),
-                    enemy.getName() + " BLOKUJE i ODBIJA " + result.reflected + " dmg w Twoją stronę!"));
+                    enemy.getName() + " BLOCKS and REFLECTS " + result.reflected + " dmg to you!"));
         }
 
         state.setEnemyHp(state.getEnemyHp() - result.damage);
@@ -122,7 +124,7 @@ public class CombatService {
     }
 
     private void playerBerserkerAttack(Character player, Enemy enemy, CombatState state,
-                                       String enemyAbility, int turn, List<FightTurnDTO> log) {
+            String enemyAbility, int turn, List<FightTurnDTO> log) {
         int totalDamage = 0;
         int attacks = 0;
         List<String> details = new ArrayList<>();
@@ -131,19 +133,20 @@ public class CombatService {
             attacks++;
             int damage = CombatCalculator.calculatePlayerDamage(player);
             boolean isCrit = CombatCalculator.isCriticalHit(player.getStats().getLuck());
-            if (isCrit) damage = (int)(damage * 1.5);
+            if (isCrit)
+                damage = (int) (damage * 1.5);
 
             AttackResult result = tryDefense(damage, isCrit, enemyAbility);
 
             if (result.blocked) {
-                details.add("BLOK");
+                details.add("BLOCK");
                 if (result.reflected > 0) {
                     state.setPlayerHp(state.getPlayerHp() - result.reflected);
-                    details.add("(Odbito " + result.reflected + ")");
+                    details.add("(Reflected " + result.reflected + ")");
                 }
             } else if (result.dodged) {
-                details.add("UNIK");
-                // Wróg unika ciosu szału -> absorbuje połowę obrażeń
+                details.add("DODGE");
+                // Enemy dodges and absorbs 50% of damage
                 if (result.givesDiveBonus) {
                     int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
                     state.setEnemyAbsorbedDamage(state.getEnemyAbsorbedDamage() + absorbed);
@@ -154,7 +157,8 @@ public class CombatService {
             }
 
             state.setEnemyHp(state.getEnemyHp() - result.damage);
-            if (state.getEnemyHp() <= 0) break;
+            if (state.getEnemyHp() <= 0)
+                break;
 
         } while (attacks < GameConfig.BERSERKER_MAX_CHAIN_ATTACKS &&
                 CombatCalculator.checkChance(GameConfig.BERSERKER_CHAIN_ATTACK_CHANCE));
@@ -164,62 +168,69 @@ public class CombatService {
 
         if (attacks > 1) {
             action = "FRENZY";
-            desc = player.getName() + " wpada w SZAŁ! Seria " + attacks + " ciosów [" + String.join(", ", details) + "]";
+            desc = player.getName() + " enters Berserker's Fury! Series of " + attacks + " attacks ["
+                    + String.join(", ", details)
+                    + "]";
         } else {
             action = "ATTACK";
-            desc = player.getName() + " wykonuje brutalny cios [" + details.get(0) + "]";
+            desc = player.getName() + " performs a brutal strike [" + details.get(0) + "]";
         }
 
         log.add(buildTurn(turn, player.getName(), action, totalDamage, Math.max(0, state.getEnemyHp()), desc));
     }
 
     private void playerRuneAttack(Character player, Enemy enemy, CombatState state, String enemyAbility,
-                                  int turn, List<FightTurnDTO> log) {
+            int turn, List<FightTurnDTO> log) {
         int damage = CombatCalculator.calculatePlayerDamage(player);
         boolean isCrit = CombatCalculator.isCriticalHit(player.getStats().getLuck());
 
-        // Specjalna interakcja: Tropiciel (Enemy) ma odporność na magię
+        // Special interaction: Hunter (Enemy) has magic resistance
         if (GameConfig.ABILITY_TROPICIEL.equals(enemyAbility)) {
             int reducedDamage = CombatCalculator.applyMagicResist(damage);
             state.setEnemyHp(state.getEnemyHp() - reducedDamage);
             log.add(buildTurn(turn, player.getName(), "RUNE_RESIST", reducedDamage, Math.max(0, state.getEnemyHp()),
-                    player.getName() + " rzuca runę, ale amulet wroga chroni! (" + damage + " -> " + reducedDamage + ")"));
+                    player.getName() + " casts a rune, but the enemy's amulet protects! (" + damage + " -> "
+                            + reducedDamage
+                            + ")"));
             return;
         }
 
         if (isCrit) {
-            damage = (int)(damage * 1.5);
+            damage = (int) (damage * 1.5);
             if (CombatCalculator.checkChance(GameConfig.MISTRZ_RUN_FREEZE_CHANCE)) {
                 state.setEnemyIsFrozen(true);
                 state.setEnemyHp(state.getEnemyHp() - damage);
                 log.add(buildTurn(turn, player.getName(), "FREEZE", damage, Math.max(0, state.getEnemyHp()),
-                        player.getName() + " ZAMRAŻA wroga Lodową Runą!"));
+                        player.getName() + " FREEZES the enemy with a FROST RUNE!"));
                 return;
             }
         }
 
         state.setEnemyHp(state.getEnemyHp() - damage);
         log.add(buildTurn(turn, player.getName(), "RUNE", damage, Math.max(0, state.getEnemyHp()),
-                player.getName() + " ciska runą za " + damage + " (nie do obrony)."));
+                player.getName() + " casts a rune for " + damage + " (unblockable)."));
     }
 
     private void playerSkaldAttack(Character player, Enemy enemy, CombatState state, int playerMaxHp,
-                                   String enemyAbility, int turn, List<FightTurnDTO> log) {
+            String enemyAbility, int turn, List<FightTurnDTO> log) {
         int songRoll = CombatCalculator.rollSkaldSong();
         int damage = CombatCalculator.calculatePlayerDamage(player);
         String desc;
         int finalDamage;
-        AttackResult result; // Zmienna pomocnicza
+        AttackResult result;
 
         switch (songRoll) {
-            case 1 -> { // Odwaga
+            case 1 -> { // Courage
                 int boostedDmg = CombatCalculator.applySkaldDamageBoost(damage);
                 result = tryDefense(boostedDmg, false, enemyAbility);
                 finalDamage = result.damage;
-                desc = player.getName() + " ryczy PIEŚŃ ODWAGI! Uderza potężniej za " + finalDamage;
-                if(result.blocked) desc += " (Blok!)";
-                if(result.dodged) desc += " (Unik!)";
-                if(result.reflected > 0) state.setPlayerHp(state.getPlayerHp() - result.reflected);
+                desc = player.getName() + " sings the Courage Song! Deals " + finalDamage;
+                if (result.blocked)
+                    desc += " (Blocked!)";
+                if (result.dodged)
+                    desc += " (Dodged!)";
+                if (result.reflected > 0)
+                    state.setPlayerHp(state.getPlayerHp() - result.reflected);
             }
             case 2 -> { // Troll
                 int heal = CombatCalculator.calculateSkaldHeal(playerMaxHp);
@@ -227,19 +238,21 @@ public class CombatService {
 
                 result = tryDefense(damage, false, enemyAbility);
                 finalDamage = result.damage;
-                desc = player.getName() + " nuci PIEŚŃ TROLA (+ " + heal + " HP) i uderza.";
-                if(result.reflected > 0) state.setPlayerHp(state.getPlayerHp() - result.reflected);
+                desc = player.getName() + " sings the Troll Song! Heals for " + heal + " HP and deals " + finalDamage;
+                if (result.reflected > 0)
+                    state.setPlayerHp(state.getPlayerHp() - result.reflected);
             }
-            default -> { // Fałszowanie
+            default -> { // False
                 int passiveDmg = CombatCalculator.calculateSkaldPassiveDamage(damage);
                 result = tryDefense(damage, false, enemyAbility);
                 finalDamage = result.damage + passiveDmg;
-                desc = player.getName() + " FAŁSZUJE! Pasywne " + passiveDmg + " + atak " + result.damage;
-                if(result.reflected > 0) state.setPlayerHp(state.getPlayerHp() - result.reflected);
+                desc = player.getName() + " sings the False Song! Deals " + finalDamage;
+                if (result.reflected > 0)
+                    state.setPlayerHp(state.getPlayerHp() - result.reflected);
             }
         }
 
-        // Sprawdzamy czy wróg uniknął fizycznej części ataku
+        // Check if enemy dodged the physical part of the attack
         if (result.dodged && result.givesDiveBonus) {
             int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
             state.setEnemyAbsorbedDamage(state.getEnemyAbsorbedDamage() + absorbed);
@@ -250,25 +263,25 @@ public class CombatService {
     }
 
     private void playerWalkiriaAttack(Character player, Enemy enemy, CombatState state,
-                                      String enemyAbility, int turn, List<FightTurnDTO> log) {
+            String enemyAbility, int turn, List<FightTurnDTO> log) {
         int damage = CombatCalculator.calculatePlayerDamage(player);
         boolean isCrit = CombatCalculator.isCriticalHit(player.getStats().getLuck());
         String action = "ATTACK";
         String descPrefix = "";
 
-        // SPRAWDZENIE ZAABSORBOWANYCH OBRAŻEŃ GRACZA
+        // Check for absorbed player damage
         if (state.getPlayerAbsorbedDamage() > 0) {
-            damage += state.getPlayerAbsorbedDamage();  // Dodaj zaabsorbowane obrażenia
-            descPrefix = "[PIKOWANIE +" + state.getPlayerAbsorbedDamage() + " dmg] ";
-            state.setPlayerAbsorbedDamage(0); // Reset zaabsorbowanych obrażeń
+            damage += state.getPlayerAbsorbedDamage(); // Add absorbed damage
+            descPrefix = "[COUNTER +" + state.getPlayerAbsorbedDamage() + " dmg] ";
+            state.setPlayerAbsorbedDamage(0); // Reset absorbed damage
             action = "DIVE";
         } else if (isCrit) {
-            damage = (int)(damage * 1.5);
+            damage = (int) (damage * 1.5);
         }
 
         AttackResult result = tryDefense(damage, isCrit || "DIVE".equals(action), enemyAbility);
 
-        // Jeśli wróg zrobił unik, absorbuje połowę obrażeń
+        // If enemy dodges, absorbs half of the damage
         if (result.dodged && result.givesDiveBonus) {
             int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
             state.setEnemyAbsorbedDamage(state.getEnemyAbsorbedDamage() + absorbed);
@@ -277,7 +290,7 @@ public class CombatService {
 
         if (result.blocked && result.reflected > 0) {
             state.setPlayerHp(state.getPlayerHp() - result.reflected);
-            descPrefix += "(Odbito " + result.reflected + ") ";
+            descPrefix += "(Reflected " + result.reflected + ") ";
         }
 
         state.setEnemyHp(state.getEnemyHp() - result.damage);
@@ -285,11 +298,11 @@ public class CombatService {
     }
 
     // ========================================================
-    // TURA PRZECIWNIKA (Router)
+    // ENEMY TURN
     // ========================================================
 
     private void handleEnemyTurn(Character player, Enemy enemy, CombatState state, int enemyMaxHp,
-                                 String playerAbility, String enemyAbility, int turn, List<FightTurnDTO> log) {
+            String playerAbility, String enemyAbility, int turn, List<FightTurnDTO> log) {
         if (enemyAbility == null) {
             enemyNormalAttack(player, enemy, state, playerAbility, turn, log);
             return;
@@ -298,32 +311,34 @@ public class CombatService {
         switch (enemyAbility) {
             case GameConfig.ABILITY_BERSERKER -> enemyBerserkerAttack(player, enemy, state, playerAbility, turn, log);
             case GameConfig.ABILITY_MISTRZ_RUN -> enemyRuneAttack(player, enemy, state, playerAbility, turn, log);
-            case GameConfig.ABILITY_SKALD -> enemySkaldAttack(player, enemy, state, enemyMaxHp, playerAbility, turn, log);
+            case GameConfig.ABILITY_SKALD ->
+                enemySkaldAttack(player, enemy, state, enemyMaxHp, playerAbility, turn, log);
             case GameConfig.ABILITY_WALKIRIA -> enemyWalkiriaAttack(player, enemy, state, playerAbility, turn, log);
             default -> enemyNormalAttack(player, enemy, state, playerAbility, turn, log);
         }
     }
 
-    // --- Implementacje Ataków Przeciwnika ---
+    // --- Enemy Attacks ---
 
     private void enemyNormalAttack(Character player, Enemy enemy, CombatState state,
-                                   String playerAbility, int turn, List<FightTurnDTO> log) {
+            String playerAbility, int turn, List<FightTurnDTO> log) {
         int damage = CombatCalculator.calculateEnemyDamage(enemy);
         boolean isCrit = CombatCalculator.isCriticalHit(enemy.getLuck());
-        if (isCrit) damage = (int)(damage * 1.5);
+        if (isCrit)
+            damage = (int) (damage * 1.5);
 
         AttackResult result = tryDefense(damage, isCrit, playerAbility);
 
-        // Obsługa odbicia (Huskarl Player)
+        // Handle reflection (Player Huskarl)
         if (result.blocked && result.reflected > 0) {
             state.setEnemyHp(state.getEnemyHp() - result.reflected);
             log.add(buildTurn(turn, player.getName(), "REFLECT", 0, state.getEnemyHp(),
-                    player.getName() + " BLOKUJE krytyka i ODBIJA " + result.reflected + " obrażeń!"));
+                    player.getName() + " BLOCKS the enemy's attack and REFLECTS " + result.reflected + " damage!"));
         }
 
         if (result.dodged && result.givesDiveBonus) {
             int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
-            state.setPlayerAbsorbedDamage(state.getPlayerAbsorbedDamage() + absorbed); // Gracz Walkiria absorbuje obrażenia
+            state.setPlayerAbsorbedDamage(state.getPlayerAbsorbedDamage() + absorbed); // Player Walkiria absorbs
         }
 
         state.setPlayerHp(state.getPlayerHp() - result.damage);
@@ -331,7 +346,7 @@ public class CombatService {
     }
 
     private void enemyBerserkerAttack(Character player, Enemy enemy, CombatState state,
-                                      String playerAbility, int turn, List<FightTurnDTO> log) {
+            String playerAbility, int turn, List<FightTurnDTO> log) {
         int totalDamage = 0;
         int attacks = 0;
         List<String> details = new ArrayList<>();
@@ -340,18 +355,19 @@ public class CombatService {
             attacks++;
             int damage = CombatCalculator.calculateEnemyDamage(enemy);
             boolean isCrit = CombatCalculator.isCriticalHit(enemy.getLuck());
-            if (isCrit) damage = (int)(damage * 1.5);
+            if (isCrit)
+                damage = (int) (damage * 1.5);
 
             AttackResult result = tryDefense(damage, isCrit, playerAbility);
 
             if (result.blocked) {
-                details.add("BLOK");
+                details.add("BLOCK");
                 if (result.reflected > 0) {
                     state.setEnemyHp(state.getEnemyHp() - result.reflected);
-                    details.add("(Odbito " + result.reflected + ")");
+                    details.add("(REFLECTED " + result.reflected + ")");
                 }
             } else if (result.dodged) {
-                details.add("UNIK");
+                details.add("DODGE");
                 if (result.givesDiveBonus) {
                     int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
                     state.setPlayerAbsorbedDamage(state.getPlayerAbsorbedDamage() + absorbed);
@@ -362,7 +378,8 @@ public class CombatService {
             }
 
             state.setPlayerHp(state.getPlayerHp() - result.damage);
-            if (state.getPlayerHp() <= 0) break;
+            if (state.getPlayerHp() <= 0)
+                break;
 
         } while (attacks < GameConfig.BERSERKER_MAX_CHAIN_ATTACKS &&
                 CombatCalculator.checkChance(GameConfig.BERSERKER_CHAIN_ATTACK_CHANCE));
@@ -372,80 +389,85 @@ public class CombatService {
 
         if (attacks > 1) {
             action = "FRENZY";
-            desc = enemy.getName() + " wpada w SZAŁ! Seria " + attacks + " ciosów [" + String.join(", ", details) + "]";
+            desc = enemy.getName() + " enters FURY! Series of " + attacks + " hits [" + String.join(", ", details)
+                    + "]";
         } else {
             action = "ATTACK";
-            desc = enemy.getName() + " wykonuje brutalny cios [" + details.get(0) + "]";
+            desc = enemy.getName() + " performs a brutal strike [" + details.get(0) + "]";
         }
 
         log.add(buildTurn(turn, enemy.getName(), action, totalDamage, Math.max(0, state.getPlayerHp()), desc));
     }
 
     private void enemyRuneAttack(Character player, Enemy enemy, CombatState state,
-                                 String playerAbility, int turn, List<FightTurnDTO> log) {
+            String playerAbility, int turn, List<FightTurnDTO> log) {
         int damage = CombatCalculator.calculateEnemyDamage(enemy);
         boolean isCrit = CombatCalculator.isCriticalHit(enemy.getLuck());
 
-        // Tropiciel Player vs Magia Enemy
+        // Hunter Player vs Magic Enemy
         if (GameConfig.ABILITY_TROPICIEL.equals(playerAbility)) {
             int reducedDamage = CombatCalculator.applyMagicResist(damage);
             state.setPlayerHp(state.getPlayerHp() - reducedDamage);
             log.add(buildTurn(turn, enemy.getName(), "RUNE_RESIST", reducedDamage, Math.max(0, state.getPlayerHp()),
-                    enemy.getName() + " rzuca runę, ale Twój amulet chroni! (" + damage + " -> " + reducedDamage + ")"));
+                    enemy.getName() + " casts a rune, but your amulet protects you! (" + damage + " -> " + reducedDamage
+                            + ")"));
             return;
         }
 
         if (isCrit) {
-            damage = (int)(damage * 1.5);
+            damage = (int) (damage * 1.5);
             if (CombatCalculator.checkChance(GameConfig.MISTRZ_RUN_FREEZE_CHANCE)) {
                 state.setPlayerIsFrozen(true);
                 state.setPlayerHp(state.getPlayerHp() - damage);
                 log.add(buildTurn(turn, enemy.getName(), "FREEZE", damage, Math.max(0, state.getPlayerHp()),
-                        enemy.getName() + " rzuca lodową runę i Cię ZAMRAŻA!"));
+                        enemy.getName() + " casts a frost rune and freezes you!"));
                 return;
             }
         }
 
         state.setPlayerHp(state.getPlayerHp() - damage);
         log.add(buildTurn(turn, enemy.getName(), "RUNE", damage, Math.max(0, state.getPlayerHp()),
-                "Nieuchronna magia run uderza w Ciebie!"));
+                "True damage from a magic rune hits you!"));
     }
 
     private void enemySkaldAttack(Character player, Enemy enemy, CombatState state, int enemyMaxHp,
-                                  String playerAbility, int turn, List<FightTurnDTO> log) {
+            String playerAbility, int turn, List<FightTurnDTO> log) {
         int songRoll = CombatCalculator.rollSkaldSong();
         int damage = CombatCalculator.calculateEnemyDamage(enemy);
         String desc;
         int finalDamage;
-        AttackResult result; // Deklaracja zmiennej dla wyniku
+        AttackResult result;
 
         switch (songRoll) {
-            case 1 -> { // Odwaga
+            case 1 -> { // Courage
                 int boostedDmg = CombatCalculator.applySkaldDamageBoost(damage);
-                result = tryDefense(boostedDmg, false, playerAbility); // Prawdziwy atak
+                result = tryDefense(boostedDmg, false, playerAbility); // True damage
                 finalDamage = result.damage;
-                desc = enemy.getName() + " śpiewa PIEŚŃ ODWAGI! Atak: " + finalDamage;
-                if (result.blocked && result.reflected > 0) state.setEnemyHp(state.getEnemyHp() - result.reflected);
+                desc = enemy.getName() + " sings the Courage! Attack: " + finalDamage;
+                if (result.blocked && result.reflected > 0)
+                    state.setEnemyHp(state.getEnemyHp() - result.reflected);
             }
-            case 2 -> { // Leczenie
+            case 2 -> { // Heal
                 int heal = CombatCalculator.calculateSkaldHeal(enemyMaxHp);
                 state.setEnemyHp(Math.min(enemyMaxHp, state.getEnemyHp() + heal));
 
-                result = tryDefense(damage, false, playerAbility); // Prawdziwy atak
+                result = tryDefense(damage, false, playerAbility); // True damage
                 finalDamage = result.damage;
-                desc = enemy.getName() + " śpiewa PIEŚŃ TROLA i leczy się (" + heal + ")!";
-                if (result.blocked && result.reflected > 0) state.setEnemyHp(state.getEnemyHp() - result.reflected);
+                desc = enemy.getName() + " sings the Heal! Attack: " + finalDamage;
+                if (result.blocked && result.reflected > 0)
+                    state.setEnemyHp(state.getEnemyHp() - result.reflected);
             }
-            default -> { // Fałszowanie
+            default -> { // False
                 int passiveDmg = CombatCalculator.calculateSkaldPassiveDamage(damage);
-                result = tryDefense(damage, false, playerAbility); // Prawdziwy atak
+                result = tryDefense(damage, false, playerAbility); // True damage
                 finalDamage = result.damage + passiveDmg;
-                desc = enemy.getName() + " FAŁSZUJE! Pasywne dmg + atak.";
-                if (result.blocked && result.reflected > 0) state.setEnemyHp(state.getEnemyHp() - result.reflected);
+                desc = enemy.getName() + " sings the False! Passive damage + attack.";
+                if (result.blocked && result.reflected > 0)
+                    state.setEnemyHp(state.getEnemyHp() - result.reflected);
             }
         }
 
-        // TERAZ POPRAWNIE SPRAWDZAMY CZY UNIKAMY (używając wyniku prawdziwego ataku 'result')
+        // Now we correctly check if we dodge (using the true attack result)
         if (result.dodged && result.givesDiveBonus) {
             int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
             state.setPlayerAbsorbedDamage(state.getPlayerAbsorbedDamage() + absorbed);
@@ -456,27 +478,27 @@ public class CombatService {
     }
 
     private void enemyWalkiriaAttack(Character player, Enemy enemy, CombatState state,
-                                     String playerAbility, int turn, List<FightTurnDTO> log) {
+            String playerAbility, int turn, List<FightTurnDTO> log) {
         int damage = CombatCalculator.calculateEnemyDamage(enemy);
         boolean isCrit = CombatCalculator.isCriticalHit(enemy.getLuck());
         String action = "ATTACK";
         String descPrefix = "";
 
-        // SPRAWDZENIE ZAABSORBOWANYCH OBRAŻEŃ WROGA
+        // Check for absorbed damage from Walkiria
         if (state.getEnemyAbsorbedDamage() > 0) {
-            damage += state.getEnemyAbsorbedDamage();  // Dodaj zaabsorbowane obrażenia
+            damage += state.getEnemyAbsorbedDamage(); // Add absorbed damage
             descPrefix = "[PIKOWANIE +" + state.getEnemyAbsorbedDamage() + " dmg] ";
-            state.setEnemyAbsorbedDamage(0); // Reset zaabsorbowanych obrażeń
+            state.setEnemyAbsorbedDamage(0); // Reset absorbed damage
             action = "DIVE";
         } else if (isCrit) {
-            damage = (int)(damage * 1.5);
+            damage = (int) (damage * 1.5);
         }
 
         AttackResult result = tryDefense(damage, isCrit || "DIVE".equals(action), playerAbility);
 
         if (result.blocked && result.reflected > 0) {
             state.setEnemyHp(state.getEnemyHp() - result.reflected);
-            descPrefix += "(Odbito " + result.reflected + ") ";
+            descPrefix += "(REFLECTED " + result.reflected + ") ";
         }
         if (result.dodged && result.givesDiveBonus) {
             int absorbed = (result.originalDamage * GameConfig.WALKIRIA_DAMAGE_ABSORPTION_PERCENT) / 100;
@@ -488,15 +510,16 @@ public class CombatService {
     }
 
     // ========================================================
-    // SYSTEM OBRONY
+    // DEFENSE SYSTEM
     // ========================================================
 
     private AttackResult tryDefense(int damage, boolean isCrit, String defenderAbility) {
         AttackResult result = new AttackResult();
         result.damage = damage;
-        result.originalDamage = damage;  // Zapisz oryginalne obrażenia
+        result.originalDamage = damage; // Save original damage
 
-        if (defenderAbility == null) return result;
+        if (defenderAbility == null)
+            return result;
 
         switch (defenderAbility) {
             case GameConfig.ABILITY_HUSKARL -> {
@@ -529,11 +552,11 @@ public class CombatService {
     }
 
     // ========================================================
-    // METODY POMOCNICZE
+    // HELPER METHODS
     // ========================================================
 
     private FightResultDTO processFightResult(Character player, Enemy enemy, CombatState state,
-                                              int pMax, int eMax, List<FightTurnDTO> log, int turns) {
+            int pMax, int eMax, List<FightTurnDTO> log, int turns) {
         boolean playerWon = state.getEnemyHp() <= 0;
         int xpGained = 0;
         int goldGained = 0;
@@ -572,26 +595,28 @@ public class CombatService {
     }
 
     private void logFrozen(List<FightTurnDTO> log, int turn, String name, int hp) {
-        log.add(buildTurn(turn, name, "FROZEN", 0, hp, name + " jest zamrożony i traci turę!"));
+        log.add(buildTurn(turn, name, "FROZEN", 0, hp, name + " is frozen and loses a turn!"));
     }
 
-    private void logAttack(int turn, String attacker, String target, AttackResult result, boolean isCrit, int targetHp, List<FightTurnDTO> log, String prefix) {
+    private void logAttack(int turn, String attacker, String target, AttackResult result, boolean isCrit, int targetHp,
+            List<FightTurnDTO> log, String prefix) {
         String action = "ATTACK";
-        String desc = prefix + attacker + " atakuje.";
+        String desc = prefix + attacker + " attacks.";
 
         if (result.blocked) {
             action = "BLOCKED";
-            desc = prefix + target + " BLOKUJE atak!";
-            if (result.reflected > 0) desc += " (Odbicie!)";
+            desc = prefix + target + " BLOCKS the attack!";
+            if (result.reflected > 0)
+                desc += " (REFLECTED!)";
         } else if (result.dodged) {
             action = "DODGED";
-            desc = prefix + target + " wykonuje UNIK!";
+            desc = prefix + target + " dodges!";
         } else {
             if (isCrit) {
                 action = "CRITICAL";
-                desc = prefix + attacker + " zadaje KRYTYCZNE obrażenia! (" + result.damage + ")";
+                desc = prefix + attacker + " deals CRITICAL damage! (" + result.damage + ")";
             } else {
-                desc = prefix + attacker + " trafia za " + result.damage + ".";
+                desc = prefix + attacker + " hits for " + result.damage + ".";
             }
         }
 
@@ -609,10 +634,10 @@ public class CombatService {
                 .build();
     }
 
-    // Klasa wewnętrzna tylko do obsługi wyniku obrony
+    // Inner class to handle attack result
     private static class AttackResult {
         int damage = 0;
-        int originalDamage = 0;  // Oryginalne obrażenia przed obroną (do absorbcji Walkirii)
+        int originalDamage = 0; // Original damage before defense (for Walkiria absorption)
         boolean blocked = false;
         boolean dodged = false;
         boolean givesDiveBonus = false;
@@ -620,7 +645,7 @@ public class CombatService {
     }
 
     public List<EnemyDTO> getEnemiesAroundLevel(int playerLevel) {
-        // Logika biznesowa obliczania zakresu (np. +/- 2 level)
+        // Business logic for calculating the range (e.g., +/- 2 level)
         int minLevel = Math.max(1, playerLevel - 2);
         int maxLevel = playerLevel + 2;
 
@@ -634,7 +659,7 @@ public class CombatService {
     public List<EnemyDTO> getAllEnemies() {
         return enemyRepository.findAll()
                 .stream()
-                .map(EnemyDTO::fromEntity) // Używamy naszej metody mapującej
+                .map(EnemyDTO::fromEntity) // Using our mapping method
                 .collect(Collectors.toList());
     }
 }

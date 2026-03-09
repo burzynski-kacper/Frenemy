@@ -38,8 +38,8 @@ public class Enemy {
     private CharacterClass characterClass;
 
     public Enemy(String name, String description, int level,
-                 int str, int intel, int dex, int con, int luck,
-                 int rewardXp, int rewardGold, String enemyType) {
+            int str, int intel, int dex, int con, int luck,
+            int rewardXp, int rewardGold, String enemyType) {
         this.name = name;
         this.description = description;
         this.level = level;
@@ -54,8 +54,8 @@ public class Enemy {
     }
 
     public Enemy(String name, String description, int level,
-                 int str, int intel, int dex, int con, int luck,
-                 int rewardXp, int rewardGold, String enemyType, CharacterClass characterClass) {
+            int str, int intel, int dex, int con, int luck,
+            int rewardXp, int rewardGold, String enemyType, CharacterClass characterClass) {
         this(name, description, level, str, intel, dex, con, luck, rewardXp, rewardGold, enemyType);
         this.characterClass = characterClass;
     }
@@ -65,7 +65,7 @@ public class Enemy {
     }
 
     /**
-     * Zwraca umiejętność przeciwnika (lub null jeśli brak klasy).
+     * Returns the enemy's special ability (or null if no class).
      */
     public String getAbility() {
         return characterClass != null ? characterClass.getSpecialAbility() : null;

@@ -16,34 +16,34 @@ public class GameConfig {
     public static final long STARTING_EXPERIENCE = 0;
     public static final int BASE_STAT_VALUE = 10;
 
-    // === KLASA: HUSKARL (Tank) ===
+    // === CLASS: HUSKARL (Tank) ===
     public static final String ABILITY_HUSKARL = "BLOCK";
-    public static final int HUSKARL_BLOCK_CHANCE = 25;           // 25% szansy na całkowity blok
-    public static final int HUSKARL_REFLECT_DAMAGE_PERCENT = 10; // Odbija 10% obrażeń (tylko przy bloku krytyka)
+    public static final int HUSKARL_BLOCK_CHANCE = 25; // 25% chance to block
+    public static final int HUSKARL_REFLECT_DAMAGE_PERCENT = 10; // Reflect 10% damage (only on critical block)
 
-    // === KLASA: BERSERKER (DPS) ===
+    // === CLASS: BERSERKER (DPS) ===
     public static final String ABILITY_BERSERKER = "FRENZY";
-    public static final int BERSERKER_CHAIN_ATTACK_CHANCE = 50;  // 50% na kolejny atak
-    public static final int BERSERKER_MAX_CHAIN_ATTACKS = 6;     // Max 6 ciosów
-    public static final int BERSERKER_EXTRA_DAMAGE_TAKEN = 10;   // Otrzymuje 10% więcej obrażeń (brak zbroi)
+    public static final int BERSERKER_CHAIN_ATTACK_CHANCE = 50; // 50% chance for next attack
+    public static final int BERSERKER_MAX_CHAIN_ATTACKS = 6; // Max 6 hits
+    public static final int BERSERKER_EXTRA_DAMAGE_TAKEN = 10; // Receives 10% more damage (no armor)
 
-    // === KLASA: WILCZY TROPICIEL (Unik) ===
+    // === CLASS: HUNTER (Dodge) ===
     public static final String ABILITY_TROPICIEL = "DODGE";
-    public static final int TROPICIEL_DODGE_CHANCE = 50;         // 50% szansy na unik fizyczny
-    public static final int TROPICIEL_MAGIC_RESIST = 20;         // 20% redukcji obrażeń od Magii (Run)
+    public static final int TROPICIEL_DODGE_CHANCE = 50; // 50% chance to dodge
+    public static final int TROPICIEL_MAGIC_RESIST = 20; // 20% magic resistance (Run)
 
-    // === KLASA: WALKIRIA (Hybryda) ===
-    public static final String ABILITY_WALKIRIA = "DODGE_WALKIRIA";
-    public static final int WALKIRIA_DODGE_CHANCE = 40;          // 40% szansy na unik
-    public static final int WALKIRIA_DAMAGE_ABSORPTION_PERCENT = 50;  // Absorbuje 50% unikniętych obrażeń jako bonus do ataku
+    // === CLASS: WALKIRIA (Counter) ===
+    public static final String ABILITY_WALKIRIA = "COUNTER";
+    public static final int WALKIRIA_DODGE_CHANCE = 40; // 40% chance to dodge
+    public static final int WALKIRIA_DAMAGE_ABSORPTION_PERCENT = 50; // Absorbs 50% of dodged damage as bonus to attack
 
-    // === KLASA: MISTRZ RUN (Mag) ===
+    // === CLASS: RUNE MASTER (Mage) ===
     public static final String ABILITY_MISTRZ_RUN = "TRUE_STRIKE";
-    public static final int MISTRZ_RUN_FREEZE_CHANCE = 10;       // 10% szansy na zamrożenie przy ataku krytycznym
+    public static final int MISTRZ_RUN_FREEZE_CHANCE = 10; // 10% chance to freeze on critical strike
 
-    // === KLASA: SKALD (Chaos/Support) ===
-    public static final String ABILITY_SKALD = "SHAPESHIFT";     // Mechanicznie to zmiana formy pieśni
-    public static final int SKALD_SONG_COURAGE_BOOST = 25;       // +25% obrażeń w tej turze
-    public static final int SKALD_SONG_TROLL_HEAL_PERCENT = 10;  // Leczy 10% max HP
-    public static final int SKALD_SONG_FALSE_PASSIVE_DMG = 20;   // Dodatkowe 20% obrażeń od "bólu uszu"
+    // === CLASS: SKALD (Paladin) ===
+    public static final String ABILITY_SKALD = "SHAPESHIFT"; // Changes to song form
+    public static final int SKALD_SONG_COURAGE_BOOST = 25; // +25% damage in this turn
+    public static final int SKALD_SONG_TROLL_HEAL_PERCENT = 10; // Heals 10% max HP
+    public static final int SKALD_SONG_FALSE_PASSIVE_DMG = 20; // Additional 20% damage from "pain in the ear"
 }

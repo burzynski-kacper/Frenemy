@@ -25,7 +25,7 @@ public class QuestController {
 
     @PostMapping("/start")
     public ResponseEntity<?> startQuest(@RequestParam Long userId, @RequestParam Long questId) {
-        System.out.println("--- PRÓBA STARTU QUESTA: User " + userId + " Quest " + questId + " ---");
+        System.out.println("--- ATTEMPT TO START QUEST: User " + userId + " Quest " + questId + " ---");
         try {
             var characterDTO = characterService.startQuest(userId, questId);
             return ResponseEntity.ok(characterDTO);
@@ -33,14 +33,15 @@ public class QuestController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Wystąpił błąd: " + e.getClass().getName() + " - " + e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body("Error: " + e.getClass().getName() + " - " + e.getMessage());
         }
 
     }
 
     @PostMapping("/complete")
     public ResponseEntity<?> completeQuest(@RequestParam Long userId) {
-        System.out.println(">>> REQUEST DOTARŁ DO KONTROLERA! UserID: " + userId);
+        System.out.println(">>> REQUEST ARRIVED AT CONTROLLER! UserID: " + userId);
         try {
             var updatedCharacterDTO = characterService.completeQuest(userId);
             return ResponseEntity.ok(updatedCharacterDTO);

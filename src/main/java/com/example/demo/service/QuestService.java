@@ -19,25 +19,25 @@ public class QuestService {
     private final CharacterRepository characterRepository;
 
     public List<Quest> getQuestsForUser(Long userId) {
-        // 1. Pobierz level gracza
+        // 1. Get character level
         Character character = characterRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Postać nie znaleziona"));
+                .orElseThrow(() -> new RuntimeException("Character not found"));
 
         int playerLevel = character.getLevel();
 
-        // 2. Szukamy misji w zakresie +/- 2 levele (żeby nie było za łatwo ani za trudno)
+        // 2. Find quests in range +/- 2 levels (to make it neither too easy nor too
+        // hard)
         int min = Math.max(1, playerLevel - 2);
         int max = playerLevel + 2;
 
         List<Quest> availableQuests = questRepository.findQuestsByLevelRange(min, max);
 
-        // Zabezpieczenie: Jeśli nie ma misji na ten level, pobierz jakiekolwiek (np. dla levelu 1)
-        // żeby Karczma nie była pusta.
+        // If no quests are available for this level, get any quests (e.g. for level 1)
         if (availableQuests.isEmpty()) {
             availableQuests = questRepository.findQuestsByLevelRange(playerLevel, playerLevel + 10);
         }
 
-        // 3. Wymieszaj i weź 3
+        // 3. Shuffle and return 3 of the available quests
         Collections.shuffle(availableQuests);
         return availableQuests.stream()
                 .limit(3)

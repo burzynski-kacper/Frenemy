@@ -10,10 +10,10 @@ import org.springframework.stereotype.Service;
 public class LevelService {
 
     /**
-     * Sprawdza i wykonuje awans postaci jeśli ma wystarczająco XP.
-     * Może awansować o kilka poziomów naraz.
+     * Checks and executes level up if the character has enough XP.
+     * Can level up multiple levels at once.
      *
-     * @return liczba zdobytych poziomów (0 jeśli brak awansu)
+     * @return number of levels gained (0 if no level up)
      */
     public int checkAndLevelUp(Character character) {
         int levelsGained = 0;
@@ -27,7 +27,7 @@ public class LevelService {
     }
 
     /**
-     * Sprawdza czy postać może awansować.
+     * Checks if the character can level up.
      */
     public boolean canLevelUp(Character character) {
         if (character.getLevel() >= GameConfig.MAX_LEVEL) {
@@ -39,12 +39,12 @@ public class LevelService {
     }
 
     /**
-     * Awansuje postać o jeden poziom i przydziela punkty statystyk.
+     * Levels up the character and distributes stat points.
      */
     private void levelUp(Character character) {
         character.setLevel(character.getLevel() + 1);
 
-        // Dodaj punkty statystyk
+        // Add stat points
         Stats stats = character.getStats();
         if (stats != null) {
             distributeStatPoints(stats);
@@ -52,11 +52,11 @@ public class LevelService {
     }
 
     /**
-     * Rozdziela punkty statystyk przy awansie.
-     * Domyślnie: +1 do każdej statystyki.
+     * Distributes stat points when leveling up.
+     * Default: +1 to each stat.
      */
     private void distributeStatPoints(Stats stats) {
-        // 5 punktów = +1 do każdej statystyki
+        // 5 points = +1 to each stat
         stats.setStrength(stats.getStrength() + 1);
         stats.setDexterity(stats.getDexterity() + 1);
         stats.setConstitution(stats.getConstitution() + 1);

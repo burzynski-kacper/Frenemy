@@ -17,70 +17,72 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final CharacterRepository characterRepository;
-    private final StatsRepository statsRepository;
-    private final CharacterClassRepository characterClassRepository;
-    private final RaceRepository raceRepository;
+        private final UserRepository userRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final CharacterRepository characterRepository;
+        private final StatsRepository statsRepository;
+        private final CharacterClassRepository characterClassRepository;
+        private final RaceRepository raceRepository;
 
-    public User registerNewUser(RegisterRequest request) {
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Ta nazwa użytkownika jest już zajęta!");
+        public User registerNewUser(RegisterRequest request) {
+                if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+                        throw new IllegalArgumentException("This username is already taken!");
+                }
+
+                String hashedPassword = passwordEncoder.encode(request.getPassword());
+
+                CharacterClass selectedClass = characterClassRepository.findByName(request.getClassName())
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Invalid class: " + request.getClassName()));
+
+                Race selectedRace = raceRepository.findByName(request.getRaceName())
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Invalid race: " + request.getRaceName()));
+
+                // Base stats + race bonuses
+                Stats initialStats = new Stats(
+                                10 + selectedRace.getStrengthBonus(),
+                                10 + selectedRace.getDexterityBonus(),
+                                10 + selectedRace.getConstitutionBonus(),
+                                10 + selectedRace.getLuckBonus(),
+                                10 + selectedRace.getIntelligenceBonus());
+                Stats savedStats = statsRepository.save(initialStats);
+
+                User newUser = new User();
+                newUser.setUsername(request.getUsername());
+                newUser.setPasswordHash(hashedPassword);
+                User savedUser = userRepository.save(newUser);
+
+                Character newCharacter = new Character();
+                newCharacter.setName(request.getCharacterName() != null ? request.getCharacterName()
+                                : savedUser.getUsername());
+                newCharacter.setUser(savedUser);
+                newCharacter.setStats(savedStats);
+                newCharacter.setCharacterClass(selectedClass);
+                newCharacter.setRace(selectedRace);
+
+                characterRepository.save(newCharacter);
+
+                return savedUser;
         }
 
-        String hashedPassword = passwordEncoder.encode(request.getPassword());
+        public com.example.demo.dto.LoginResponse loginUser(com.example.demo.dto.LoginRequest request) {
+                User user = userRepository.findByUsername(request.getUsername())
+                                .orElseThrow(() -> new IllegalArgumentException("Invalid username or password!"));
 
-        CharacterClass selectedClass = characterClassRepository.findByName(request.getClassName())
-                .orElseThrow(() -> new IllegalArgumentException("Nieprawidłowa klasa: " + request.getClassName()));
+                if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+                        throw new IllegalArgumentException("Invalid username or password!");
+                }
 
-        Race selectedRace = raceRepository.findByName(request.getRaceName())
-                .orElseThrow(() -> new IllegalArgumentException("Nieprawidłowa rasa: " + request.getRaceName()));
+                Character character = characterRepository.findByUserId(user.getId())
+                                .orElseThrow(() -> new IllegalStateException("No character found for this user!"));
 
-        // Bazowe statystyki + bonusy rasowe
-        Stats initialStats = new Stats(
-                10 + selectedRace.getStrengthBonus(),
-                10 + selectedRace.getDexterityBonus(),
-                10 + selectedRace.getConstitutionBonus(),
-                10 + selectedRace.getLuckBonus(),
-                10 + selectedRace.getIntelligenceBonus()
-        );
-        Stats savedStats = statsRepository.save(initialStats);
-
-        User newUser = new User();
-        newUser.setUsername(request.getUsername());
-        newUser.setPasswordHash(hashedPassword);
-        User savedUser = userRepository.save(newUser);
-
-        Character newCharacter = new Character();
-        newCharacter.setName(request.getCharacterName() != null ? request.getCharacterName() : savedUser.getUsername());
-        newCharacter.setUser(savedUser);
-        newCharacter.setStats(savedStats);
-        newCharacter.setCharacterClass(selectedClass);
-        newCharacter.setRace(selectedRace);
-
-        characterRepository.save(newCharacter);
-
-        return savedUser;
-    }
-
-    public com.example.demo.dto.LoginResponse loginUser(com.example.demo.dto.LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("Nieprawidłowa nazwa użytkownika lub has hasło!"));
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Nieprawidłowa nazwa użytkownika lub hasło!");
+                return com.example.demo.dto.LoginResponse.builder()
+                                .userId(user.getId())
+                                .username(user.getUsername())
+                                .characterId(character.getId())
+                                .characterName(character.getName())
+                                .message("Logged in successfully!")
+                                .build();
         }
-
-        Character character = characterRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new IllegalStateException("Brak postaci dla tego użytkownika!"));
-
-        return com.example.demo.dto.LoginResponse.builder()
-                .userId(user.getId())
-                .username(user.getUsername())
-                .characterId(character.getId())
-                .characterName(character.getName())
-                .message("Zalogowano pomyślnie!")
-                .build();
-    }
 }

@@ -29,17 +29,15 @@ public class CharacterService {
     private final CharacterItemRepository characterItemRepository;
     private final CombatService combatService;
 
-
     public CharacterDTO getCharacterResponse(Long userId) {
         Character character = getCharacterByUserId(userId);
 
         if (character.getCharacterClass() == null) {
-            throw new IllegalStateException("Postać nie ma przypisanej klasy!");
+            throw new IllegalStateException("Character has no class!");
         }
         if (character.getUser() == null) {
-            throw new IllegalStateException("Postać nie ma przypisanego użytkownika!");
+            throw new IllegalStateException("Character has no user  !");
         }
-
 
         Stats calculateStats = calculateTotalStats(character);
 
@@ -50,11 +48,12 @@ public class CharacterService {
                 .experience(character.getExperience())
                 .gold(character.getGold())
                 .className(character.getCharacterClass().getName())
-                .raceName(character.getRace() != null ? character.getRace().getName() : "Nieznana")
+                .raceName(character.getRace() != null ? character.getRace().getName() : "Unknown")
                 .username(character.getUser().getUsername())
                 .stats(calculateStats)
                 .xpToNextLevel(ExperienceCalculator.getXpToNextLevel(character.getLevel(), character.getExperience()))
-                .xpProgressPercent(ExperienceCalculator.getXpProgressPercent(character.getLevel(), character.getExperience()))
+                .xpProgressPercent(
+                        ExperienceCalculator.getXpProgressPercent(character.getLevel(), character.getExperience()))
                 .build();
     }
 
@@ -63,15 +62,15 @@ public class CharacterService {
         Character character = getCharacterByUserId(userId);
 
         if (character.isBusy()) {
-            throw new IllegalStateException("Postać jest już na misji! Musisz poczekać.");
+            throw new IllegalStateException("Character is already on a quest! You have to wait.");
         }
 
         Quest quest = questRepository.findById(questId)
-                .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono takiego questu."));
+                .orElseThrow(() -> new IllegalArgumentException("Quest not found!"));
 
         // Walidacja poziomu
         if (character.getLevel() < quest.getMinLevel()) {
-            throw new IllegalStateException("Twój poziom jest za niski! Wymagany: " + quest.getMinLevel());
+            throw new IllegalStateException("Your level is too low! Required: " + quest.getMinLevel());
         }
 
         character.setCurrentQuest(quest);
@@ -82,64 +81,93 @@ public class CharacterService {
         return getCharacterResponse(userId);
     }
 
-
     @Transactional
     public FightResultDTO completeQuest(Long userId) {
         Character character = characterRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalStateException("Postać nie istnieje!"));
+                .orElseThrow(() -> new IllegalStateException("Character doesn't exist!"));
 
         if (character.getCurrentQuest() == null) {
-            throw new IllegalStateException("Postać nie jest na misji!");
+            throw new IllegalStateException("Character is not on a quest!");
         }
 
         Quest quest = questRepository.findById(character.getCurrentQuest().getId())
-                .orElseThrow(() -> new IllegalStateException("Misja nie istnieje!"));
+                .orElseThrow(() -> new IllegalStateException("Quest doesn't exist!"));
 
-        // Walidacja czasu questu
+        // Validate quest time
         if (character.getQuestEndTime() != null && LocalDateTime.now().isBefore(character.getQuestEndTime())) {
-            throw new IllegalStateException("Quest jeszcze się nie zakończył! Poczekaj.");
+            throw new IllegalStateException("Quest hasn't ended yet! Wait.");
         }
 
-        // 1. WALKA
+        // 1. FIGHT
         if (quest.getEnemyId() == null) {
-            throw new IllegalStateException("Błąd danych: Misja bez przeciwnika!");
+            throw new IllegalStateException("Quest has no enemy!");
         }
 
         FightResultDTO result = combatService.fight(userId, quest.getEnemyId());
 
-        // 2. JEŚLI WYGRANA -> ROZDAJ NAGRODY
+        // 2. IF WON -> GIVE REWARDS
         if (result.isPlayerWon()) {
-            // Złoto i XP z definicji Misji
+            // Gold and XP from the quest
             character.setGold(character.getGold() + quest.getRewardGold());
             character.setExperience(character.getExperience() + quest.getRewardXp());
 
-            // Sprawdzenie level up (jeśli levelService nie jest wywoływany w combatService)
+            // Check level up (if levelService is not called in combatService)
             levelService.checkAndLevelUp(character);
 
-            // === LOGIKA ITEMU (Czy ta misja ma przypisany przedmiot?) ===
+            // === ITEM LOGIC (Does this quest have an item?) ===
             if (quest.getRewardItemId() != null) {
                 Item item = itemRepository.findById(quest.getRewardItemId())
                         .orElse(null);
 
                 if (item != null) {
-                    // Dodaj do ekwipunku
+                    // Add to inventory
                     CharacterItem newItem = new CharacterItem();
                     newItem.setCharacter(character);
                     newItem.setItem(item);
                     newItem.setEquipped(false);
                     characterItemRepository.save(newItem);
 
-                    System.out.println("NAGRODA: Gracz otrzymał przedmiot: " + item.getName());
+                    System.out.println("Player received item: " + item.getName());
                 }
             }
         }
 
-        // 3. Koniec misji (czyścimy status)
+        // 3. END QUEST (clear status)
         character.setCurrentQuest(null);
         character.setQuestEndTime(null);
         characterRepository.save(character);
 
         return result;
+    }
+
+    @Transactional
+    public void equipItem(Long userId, Long itemId) {
+        Character character = getCharacterByUserId(userId);
+
+        CharacterItem characterItem = character.getInventory().stream()
+                .filter(ci -> ci.getItem().getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("You don't have this item!"));
+
+        // Check if there is already an equipped item of the same type
+        ItemType type = characterItem.getItem().getType();
+        character.getInventory().stream()
+                .filter(ci -> ci.isEquipped() && ci.getItem().getType() == type)
+                .forEach(ci -> ci.setEquipped(false)); // Remove the old one
+
+        characterItem.setEquipped(true);
+    }
+
+    @Transactional
+    public void unequipItem(Long userId, Long itemId) {
+        Character character = getCharacterByUserId(userId);
+
+        CharacterItem characterItem = character.getInventory().stream()
+                .filter(ci -> ci.getItem().getId().equals(itemId) && ci.isEquipped())
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("This item is not equipped!"));
+
+        characterItem.setEquipped(false);
     }
 
     private Character getCharacterByUserId(Long userId) {
@@ -151,9 +179,8 @@ public class CharacterService {
         Stats base = character.getStats();
 
         if (base == null) {
-            throw new IllegalStateException("Postać nie ma przypisanych statystyk!");
+            throw new IllegalStateException("Character has no stats!");
         }
-
 
         int totalStrength = base.getStrength();
         int totalIntelligence = base.getIntelligence();
@@ -180,8 +207,8 @@ public class CharacterService {
 
     public List<CharacterItem> getCharacterInventory(Long userId) {
         Character character = getCharacterByUserId(userId);
-        return character.getInventory() != null 
-            ? new ArrayList<>(character.getInventory()) 
-            : new ArrayList<>();
+        return character.getInventory() != null
+                ? new ArrayList<>(character.getInventory())
+                : new ArrayList<>();
     }
 }
