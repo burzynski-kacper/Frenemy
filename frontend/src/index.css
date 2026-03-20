@@ -1,0 +1,300 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Inter:wght@400;500&display=swap');
+
+:root {
+  --bg-color: #0f0a06;
+  --panel-bg: rgba(26, 18, 11, 0.85);
+  --panel-border: rgba(184, 134, 11, 0.4);
+  --text-primary: #f4ebd8;
+  --text-secondary: #a39581;
+  --primary-color: #7b0d0d;
+  --primary-hover: #9c1515;
+  --secondary-color: #2c2117;
+  --secondary-hover: #3e2e21;
+  --accent: #d4af37;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-background {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, rgba(123, 13, 13, 0.15), var(--bg-color) 80%),
+    url('https://www.transparenttextures.com/patterns/dark-leather.png');
+}
+
+.glass-panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 3rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 0, 0, 0.5);
+  animation: floatIn 0.8s ease-out forwards;
+  position: relative;
+}
+
+/* Ornaments for the panel corners */
+.glass-panel::before,
+.glass-panel::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--accent);
+  opacity: 0.5;
+}
+
+.glass-panel::before {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.glass-panel::after {
+  bottom: 10px;
+  right: 10px;
+  border-left: none;
+  border-top: none;
+}
+
+.auth-container {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.game-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  letter-spacing: 10px;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  opacity: 0.8;
+}
+
+.auth-container h1 {
+  font-family: 'Cinzel', serif;
+  margin-top: 0;
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.game-container h2 {
+  font-family: 'Cinzel', serif;
+  color: var(--accent);
+  font-size: 2.2rem;
+  text-transform: uppercase;
+}
+
+.auth-container p {
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-bottom: 2.5rem;
+}
+
+.input-field {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--panel-border);
+  border-radius: 2px;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-family: 'Inter', serif;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.btn {
+  font-family: 'Cinzel', serif;
+  padding: 1rem;
+  border-radius: 2px;
+  border: 1px solid var(--panel-border);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(to bottom, var(--primary-hover), var(--primary-color));
+  color: var(--text-primary);
+  border-color: #500;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to bottom, #bd1818, var(--primary-hover));
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(123, 13, 13, 0.6);
+  border-color: var(--accent);
+}
+
+.btn-secondary {
+  background: var(--secondary-color);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-hover);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+/* =========================================
+   GAME PAGE LAYOUT 
+   ========================================= */
+
+.game-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr 320px;
+  grid-template-rows: auto 1fr;
+  width: 100vw;
+  height: 100vh;
+  padding: 1.5rem;
+  gap: 1.5rem;
+  box-sizing: border-box;
+}
+
+.game-header {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2.5rem !important; /* using important just to override standard panel padding */
+}
+
+.header-stats {
+  display: flex;
+  gap: 3rem;
+  font-size: 1.3rem;
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.gold-text {
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+}
+
+.sidebar-left, .sidebar-right {
+  display: flex;
+  flex-direction: column;
+  padding: 2rem !important;
+  overflow-y: auto;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem !important;
+  overflow-y: auto;
+}
+
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  font-size: 1.1rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.3rem;
+}
+
+.action-buttons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 3rem;
+}
+
+.inventory-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.inventory-list li {
+  padding: 1rem 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.inventory-list li:hover {
+  color: var(--accent);
+  transform: translateX(5px);
+  cursor: pointer;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color); 
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(184, 134, 11, 0.3); /* Bronze */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent); 
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
